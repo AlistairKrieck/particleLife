@@ -4,38 +4,55 @@ using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using static particleLife.lifeSim;
 
 namespace particleLife
 {
     public partial class lifeSim : Form
     {
-        int particleSize = 5;
-        int particleCount = 100;
+        int particleSize = 2;
+        int particleCount = 200;
+        int staticStrength = 3;
+
+        int frameCounter = 0;
+
+        ParticleType redParticle = new ParticleType();
+        ParticleType blueParticle = new ParticleType();
+        ParticleType greenParticle = new ParticleType();
+        ParticleType yellowParticle = new ParticleType();
 
         List<Particle> redParticles = new List<Particle>();
         List<Particle> greenParticles = new List<Particle>();
         List<Particle> blueParticles = new List<Particle>();
         List<Particle> yellowParticles = new List<Particle>();
+        List<Particle> netParticles = new List<Particle>();
 
         public class ParticleType
         {
-            public List<int> staticForces { get; set; }
+            public Dictionary<string, int> staticForces { get; set; }
             public Color particleColor { get; set; }
+
+            public ParticleType()
+            {
+                staticForces = new Dictionary<string, int>();
+            }
         }
 
         public class Particle
         {
-            public int x {get; set;}
-            public int y {get; set;}
-            public ParticleType type { get; set;}
-            public Vector2 velocity { get; set; } // Velocity vector for particle movement
+            public int x { get; set; }
+            public int y { get; set; }
+            public ParticleType type { get; set; }
+            public Vector2 velocity { get; set; }
 
+            // Constructor
             public Particle()
             {
-                velocity = new Vector2(); // Initialize velocity with default (0, 0)
+                velocity = Vector2.Zero; // Or initialize with some default value
             }
         }
 
@@ -50,46 +67,69 @@ namespace particleLife
                 Y = y;
             }
 
-            // Add a default constructor to initialize to (0, 0)
-            public Vector2()
-            {
-                X = 0;
-                Y = 0;
-            }
             public static Vector2 Zero => new Vector2(0, 0);
+
+            // Operator overloads for vector arithmetic
 
             public static Vector2 operator +(Vector2 a, Vector2 b)
             {
-                if (a == null)
-                    throw new ArgumentNullException(nameof(a));
-                if (b == null)
-                    throw new ArgumentNullException(nameof(b));
+                if (a == null || b == null)
+                {
+                    throw new ArgumentNullException("Both vectors must be non-null for addition.");
+                    // Or handle gracefully by returning Vector2.Zero or some other default behavior
+                }
 
                 return new Vector2(a.X + b.X, a.Y + b.Y);
             }
-            public static Vector2 operator -(Vector2 a, Vector2 b) => new Vector2(a.X - b.X, a.Y - b.Y);
-            public static Vector2 operator *(Vector2 a, float scalar) => new Vector2(a.X * scalar, a.Y * scalar);
-            public static Vector2 operator /(Vector2 a, float scalar) => new Vector2(a.X / scalar, a.Y / scalar);
+
+            public static Vector2 operator -(Vector2 a, Vector2 b)
+            {
+                if (a == null || b == null)
+                {
+                    throw new ArgumentNullException("Both vectors must be non-null for subtraction.");
+                    // Or handle gracefully by returning Vector2.Zero or some other default behavior
+                }
+
+                return new Vector2(a.X - b.X, a.Y - b.Y);
+            }
+
+            public static Vector2 operator *(Vector2 a, float scalar)
+            {
+                if (a == null)
+                    throw new ArgumentNullException(nameof(a), "Vector a cannot be null.");
+
+                return new Vector2(a.X * scalar, a.Y * scalar);
+            }
+
+            public static Vector2 operator /(Vector2 a, float scalar)
+            {
+                if (a == null)
+                    throw new ArgumentNullException(nameof(a), "Vector a cannot be null.");
+
+                return new Vector2(a.X / scalar, a.Y / scalar);
+            }
+
+            // Additional vector operations
 
             public float Length() => (float)Math.Sqrt(X * X + Y * Y);
+
             public Vector2 Normalize() => this / Length();
         }
 
-        public List<int> GiveStaticForces()
+        public Dictionary<string, int> GiveStaticForces()
         {
             Random rnd = new Random();
 
-            int redForce = rnd.Next(-4, 4);
-            int blueForce = rnd.Next(-4, 4);
-            int greenForce = rnd.Next(-4, 4);
-            int yellowForce = rnd.Next(-4, 4);
+            int redForce = rnd.Next(-staticStrength, staticStrength + 1);
+            int blueForce = rnd.Next(-staticStrength, staticStrength + 1);
+            int greenForce = rnd.Next(-staticStrength, staticStrength + 1);
+            int yellowForce = rnd.Next(-staticStrength, staticStrength + 1);
 
-
-            List<int> forces = new List<int>();
-            forces.Add(redForce);
-            forces.Add(blueForce);
-            forces.Add(greenForce);
-            forces.Add(yellowForce);
+            Dictionary<string, int> forces = new Dictionary<string, int>();
+            forces.Add("red", redForce);
+            forces.Add("blue", blueForce);
+            forces.Add("green", greenForce);
+            forces.Add("yellow", yellowForce);
 
             return forces;
         }
@@ -101,68 +141,44 @@ namespace particleLife
 
         private void GameInit()
         {
-            Form1_Resize();
+            //Form1_Resize();
+
+            //Clear Paritcles
             redParticles.Clear();
             blueParticles.Clear();
             greenParticles.Clear();
             yellowParticles.Clear();
+            netParticles.Clear();
 
-            ParticleType redParticle = new ParticleType();
+            //Set Interative Forces
             redParticle.staticForces = GiveStaticForces();
-            redParticle.particleColor = Color.Red;
-            
-            ParticleType blueParticle = new ParticleType();
             blueParticle.staticForces = GiveStaticForces();
-            blueParticle.particleColor = Color.Red;
-
-            ParticleType greenParticle = new ParticleType();
             greenParticle.staticForces = GiveStaticForces();
-            greenParticle.particleColor = Color.Red;
-
-            ParticleType yellowParticle = new ParticleType();
             yellowParticle.staticForces = GiveStaticForces();
-            yellowParticle.particleColor = Color.Red;
-            
+
+            //Initialize particles
+            InitializeParticles(redParticles, redParticle, particleCount, Color.Red);
+            InitializeParticles(blueParticles, blueParticle, particleCount, Color.Blue);
+            InitializeParticles(greenParticles, greenParticle, particleCount, Color.Green);
+            InitializeParticles(yellowParticles, yellowParticle, particleCount, Color.Yellow);
+        }
+
+        private void InitializeParticles(List<Particle> particles, ParticleType type, int count, Color color)
+        {
+            particles.Clear();
 
             Random rnd = new Random();
-            for(int i = 0; i < particleCount; i++)
+            for (int i = 0; i < count; i++)
             {
                 Particle temp = new Particle();
                 temp.x = rnd.Next(0, this.ClientSize.Width - 3);
                 temp.y = rnd.Next(0, this.ClientSize.Height - 3);
-                temp.type = redParticle;
+                temp.type = type;
+                temp.type.particleColor = color;
+                temp.velocity = Vector2.Zero; // Ensure velocity is initialized
 
-                redParticles.Add(temp);
-            }
-
-            for (int i = 0; i < particleCount; i++)
-            {
-                Particle temp = new Particle();
-                temp.x = rnd.Next(0, this.ClientSize.Width - 3);
-                temp.y = rnd.Next(0, this.ClientSize.Height - 3);
-                temp.type = blueParticle;
-
-                blueParticles.Add(temp);
-            }
-
-            for (int i = 0; i < particleCount; i++)
-            {
-                Particle temp = new Particle();
-                temp.x = rnd.Next(0, this.ClientSize.Width - 3);
-                temp.y = rnd.Next(0, this.ClientSize.Height - 3);
-                temp.type = greenParticle;
-
-                greenParticles.Add(temp);
-            }
-
-            for (int i = 0; i < particleCount; i++)
-            {
-                Particle temp = new Particle();
-                temp.x = rnd.Next(0, this.ClientSize.Width - 3);
-                temp.y = rnd.Next(0, this.ClientSize.Height - 3);
-                temp.type = yellowParticle;
-
-                yellowParticles.Add(temp);
+                particles.Add(temp);
+                netParticles.Add(temp);
             }
         }
 
@@ -177,31 +193,100 @@ namespace particleLife
 
         private void MoveParticles()
         {
-            float speed = 1.0f; // Adjust as needed
-            Random rnd = new Random(); // Move this outside the loop for better randomness
-            foreach (var particle in redParticles.Concat(blueParticles).Concat(greenParticles).Concat(yellowParticles))
+            float maxForceMagnitude = 0.05f; // Maximum magnitude of interaction force
+            float speed = 3.0f; // Adjust as needed
+
+            foreach (var particle in netParticles)
             {
-                // Calculate acceleration based on static forces of the particle type
-                Vector2 acceleration = Vector2.Zero;
-                foreach (var force in particle.type.staticForces)
+                Vector2 totalForce = Vector2.Zero;
+
+                // Calculate interaction forces from other particles
+                foreach (var otherParticle in netParticles)
                 {
-                    Vector2 direction = new Vector2((float)Math.Cos(force), (float)Math.Sin(force)); // Convert force angle to direction
-                    acceleration += direction; // Accumulate all forces
+                    if (particle != otherParticle && Math.Abs(otherParticle.x - particle.x) <= 350 && Math.Abs(otherParticle.y - particle.y) <= 350)
+                    {
+                        // Determine interaction force based on particle types
+                        string otherTypeKey = GetParticleTypeKey(otherParticle.type);
+                        int force = particle.type.staticForces[otherTypeKey];
+
+                        // Calculate force direction (vector pointing from otherParticle to particle)
+                        Vector2 forceDirection = new Vector2(otherParticle.x - particle.x, otherParticle.y - particle.y);
+
+                        // Calculate force magnitude based on force value and distance (if needed)
+                        float distance = forceDirection.Length();
+                        if (distance > 0)
+                        {
+                            float forceMagnitude = force * maxForceMagnitude / distance; // Adjust force magnitude based on distance
+                            totalForce += forceDirection.Normalize() * forceMagnitude;
+                        }
+                    }
                 }
 
-                // Update velocity based on acceleration
-                particle.velocity += acceleration.Normalize() * speed;
+                // Update velocity based on total force
+                particle.velocity += totalForce * speed;
 
                 // Update position based on velocity
                 particle.x = (int)(particle.x + particle.velocity.X);
                 particle.y = (int)(particle.y + particle.velocity.Y);
 
+                WallCollision(particle);
                 // Wrap particles around the screen if they go out of bounds (optional)
-                WrapParticleAroundScreen(particle);
+                //WrapParticleAroundScreen(particle);
+
+                if (frameCounter % 10 == 0)
+                {
+                    DecellerateParticles(particle);
+                }
             }
         }
 
-        // Optional: Wrap particles around the screen if they go out of bounds
+        private void DecellerateParticles(Particle particle)
+        {
+            if (particle.velocity.X > 0)
+            {
+                particle.velocity.X--;
+            }
+
+            if (particle.velocity.X < 0)
+            {
+                particle.velocity.X++;
+            }
+
+            if (particle.velocity.Y > 0)
+            {
+                particle.velocity.Y--;
+            }
+
+            if (particle.velocity.Y < 0)
+            {
+                particle.velocity.Y++;
+            }
+        }
+
+        private string GetParticleTypeKey(ParticleType type)
+        {
+            if (ReferenceEquals(type, redParticle))
+            {
+                return "red";
+            }
+            else if (ReferenceEquals(type, blueParticle))
+            {
+                return "blue";
+            }
+            else if (ReferenceEquals(type, greenParticle))
+            {
+                return "green";
+            }
+            else if (ReferenceEquals(type, yellowParticle))
+            {
+                return "yellow";
+            }
+            else
+            {
+                throw new ArgumentException("Unknown ParticleType encountered");
+            }
+        }
+
         private void WrapParticleAroundScreen(Particle particle)
         {
             if (particle.x < 0)
@@ -215,43 +300,63 @@ namespace particleLife
                 particle.y = 0;
         }
 
+        private void WallCollision(Particle particle)
+        {
+            if (particle.x < 0)
+            {
+                particle.x = 0;
+                particle.velocity.X *= -1f;
+            }
+
+            if (particle.y < 0)
+            {
+                particle.y = 0;
+                particle.velocity.Y *= -1f;
+            }
+
+            if (particle.x > this.ClientSize.Width)
+            {
+                particle.x = this.ClientSize.Width;
+                particle.velocity.X *= -1f;
+            }
+
+            if (particle.y > this.ClientSize.Height)
+            {
+                particle.y = this.ClientSize.Height;
+                particle.velocity.Y *= -1f;
+            }
+        }
+
         private void gameTimer_Tick(object sender, EventArgs e)
         {
+            frameCounter++;
             MoveParticles();
+            //Form1_Resize();
             Refresh();
-            Form1_Resize();
         }
 
         private void lifeSim_Paint(object sender, PaintEventArgs e)
         {
-            foreach (var p in redParticles)
-            {
-                Brush temp = new SolidBrush(Color.Red);
-                e.Graphics.FillRectangle(temp, p.x, p.y, particleSize, particleSize);
-            }
+            DrawParticles(e.Graphics, redParticles, Color.Red);
+            DrawParticles(e.Graphics, blueParticles, Color.Blue);
+            DrawParticles(e.Graphics, greenParticles, Color.Green);
+            DrawParticles(e.Graphics, yellowParticles, Color.Yellow);
+        }
 
-            foreach (var p in blueParticles)
+        private void DrawParticles(Graphics graphics, List<Particle> particles, Color color)
+        {
+            using (Brush brush = new SolidBrush(color))
             {
-                Brush temp = new SolidBrush(Color.Blue);
-                e.Graphics.FillRectangle(temp, p.x, p.y, particleSize, particleSize);
-            }
-
-            foreach (var p in greenParticles)
-            {
-                Brush temp = new SolidBrush(Color.Green);
-                e.Graphics.FillRectangle(temp, p.x, p.y, particleSize, particleSize);
-            }
-
-            foreach (var p in yellowParticles)
-            {
-                Brush temp = new SolidBrush(Color.Yellow);
-                e.Graphics.FillRectangle(temp, p.x, p.y, particleSize, particleSize);
+                foreach (var particle in particles)
+                {
+                    graphics.FillRectangle(brush, particle.x, particle.y, particleSize, particleSize);
+                }
             }
         }
 
         private void lifeSim_KeyDown(object sender, KeyEventArgs e)
         {
-            switch(e.KeyCode)
+            switch (e.KeyCode)
             {
                 case Keys.R:
                     GameInit();

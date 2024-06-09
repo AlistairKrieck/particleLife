@@ -35,7 +35,7 @@
             // gameTimer
             // 
             this.gameTimer.Enabled = true;
-            this.gameTimer.Interval = 10;
+            this.gameTimer.Interval = 25;
             this.gameTimer.Tick += new System.EventHandler(this.gameTimer_Tick);
             // 
             // lifeSim
@@ -49,7 +49,6 @@
             this.MinimizeBox = false;
             this.Name = "lifeSim";
             this.Text = "Life Simulator";
-            this.WindowState = System.Windows.Forms.FormWindowState.Maximized;
             this.Paint += new System.Windows.Forms.PaintEventHandler(this.lifeSim_Paint);
             this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.lifeSim_KeyDown);
             this.ResumeLayout(false);
